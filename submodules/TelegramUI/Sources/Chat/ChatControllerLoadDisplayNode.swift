@@ -693,7 +693,7 @@ extension ChatControllerImpl {
                     if counterAndTimestamp.0 >= 3 {
                         maybeSuggestPremium = true
                     }
-                    if (isPremium || maybeSuggestPremium || hasAutoTranslate) && !isHidden {
+                    if (isPremium || maybeSuggestPremium || hasAutoTranslate || true /* MARK: Swiftgram */) && !isHidden {
                         return chatTranslationState(context: context, peerId: peerId, threadId: chatLocation.threadId)
                         |> map { translationState -> ChatPresentationTranslationState? in
                             if let translationState, !translationState.fromLang.isEmpty && (translationState.fromLang != baseLanguageCode || translationState.isEnabled) {
@@ -712,6 +712,22 @@ extension ChatControllerImpl {
                         strongSelf.updateChatPresentationInterfaceState(animated: strongSelf.willAppear, interactive: strongSelf.willAppear, { state in
                             return state.updatedTranslationState(chatTranslationState)
                         })
+                    }
+                })
+                
+                // MARK: Swiftgram
+                self.chatLanguagePredictionDisposable = (
+                    chatTranslationState(context: context, peerId: peerId, forcePredict: true)
+                    |> map { translationState -> ChatPresentationTranslationState? in
+                        if let translationState, !translationState.fromLang.isEmpty {
+                            return ChatPresentationTranslationState(isEnabled: translationState.isEnabled, fromLang: translationState.fromLang, toLang: translationState.toLang ?? baseLanguageCode)
+                        } else {
+                            return nil
+                        }
+                    }
+                    |> distinctUntilChanged).startStrict(next: { [weak self] translationState in
+                    if let strongSelf = self, let translationState = translationState, strongSelf.predictedChatLanguage == nil {
+                        strongSelf.predictedChatLanguage = translationState.fromLang
                     }
                 })
             }
@@ -2223,12 +2239,24 @@ extension ChatControllerImpl {
                     }
                 }))
             }
-        }, forwardSelectedMessages: { [weak self] in
+        }, forwardSelectedMessages: { [weak self] mode in
             if let strongSelf = self {
                 strongSelf.commitPurposefulAction()
                 if let forwardMessageIdsSet = strongSelf.presentationInterfaceState.interfaceState.selectionState?.selectedIds {
                     let forwardMessageIds = Array(forwardMessageIdsSet).sorted()
-                    strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                    // MARK: Swiftgram
+                    if let mode = mode {
+                        switch (mode) {
+                        case "toCloud":
+                            strongSelf.forwardMessagesToCloud(messageIds: forwardMessageIds, removeNames: false, openCloud: false, resetCurrent: true)
+                        case "hideNames":
+                            strongSelf.forwardMessages(forceHideNames: true, messageIds: forwardMessageIds, options: ChatInterfaceForwardOptionsState(hideNames: true, hideCaptions: false, unhideNamesOnCaptionChange: false))
+                        default:
+                            strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                        }
+                    } else {
+                        strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                    }
                 }
             }
         }, forwardCurrentForwardMessages: { [weak self] in
@@ -2238,7 +2266,7 @@ extension ChatControllerImpl {
                     strongSelf.forwardMessages(messageIds: forwardMessageIds, options: strongSelf.presentationInterfaceState.interfaceState.forwardOptionsState, resetCurrent: true)
                 }
             }
-        }, forwardMessages: { [weak self] messages in
+        }, forwardMessages: { [weak self] messages, mode in
             if let strongSelf = self, !messages.isEmpty {
                 guard !strongSelf.presentAccountFrozenInfoIfNeeded(delay: true) else {
                     return
@@ -2246,7 +2274,22 @@ extension ChatControllerImpl {
                 
                 strongSelf.commitPurposefulAction()
                 let forwardMessageIds = messages.map { $0.id }.sorted()
-                strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                // MARK: Swiftgram
+                if let mode = mode {
+                    switch (mode) {
+                        case "forwardMessagesToCloudWithNoNamesAndOpen":
+                            strongSelf.forwardMessagesToCloud(messageIds: forwardMessageIds, removeNames: true, openCloud: true)
+                        case "forwardMessagesToCloud":
+                            strongSelf.forwardMessagesToCloud(messageIds: forwardMessageIds, removeNames: false, openCloud: false)
+                        case "forwardMessagesWithNoNames":
+                            strongSelf.forwardMessages(forceHideNames: true, messageIds: forwardMessageIds, options: ChatInterfaceForwardOptionsState(hideNames: true, hideCaptions: false, unhideNamesOnCaptionChange: false))
+                        default:
+                            strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                    }
+                } else {
+                    strongSelf.forwardMessages(messageIds: forwardMessageIds)
+                }
+
             }
         }, updateForwardOptionsState: { [weak self] f in
             if let strongSelf = self {

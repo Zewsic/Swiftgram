@@ -9,7 +9,7 @@ import ChatBotStartInputPanelNode
 import ChatChannelSubscriberInputPanelNode
 import ChatMessageSelectionInputPanelNode
 
-func inputPanelForChatPresentationIntefaceState(_ chatPresentationInterfaceState: ChatPresentationInterfaceState, context: AccountContext, currentPanel: ChatInputPanelNode?, currentSecondaryPanel: ChatInputPanelNode?, textInputPanelNode: ChatTextInputPanelNode?, interfaceInteraction: ChatPanelInterfaceInteraction?) -> (primary: ChatInputPanelNode?, secondary: ChatInputPanelNode?) {
+func inputPanelForChatPresentationIntefaceState(_ chatPresentationInterfaceState: ChatPresentationInterfaceState, context: AccountContext, currentPanel: ChatInputPanelNode?, currentSecondaryPanel: ChatInputPanelNode?, textInputPanelNode: ChatTextInputPanelNode?, interfaceInteraction: ChatPanelInterfaceInteraction?, forceHideChannelButton: Bool = false) -> (primary: ChatInputPanelNode?, secondary: ChatInputPanelNode?) {
     var isPostSuggestions = false
     if case let .customChatContents(customChatContents) = chatPresentationInterfaceState.subject, case .postSuggestions = customChatContents.kind {
         isPostSuggestions = true
@@ -301,6 +301,10 @@ func inputPanelForChatPresentationIntefaceState(_ chatPresentationInterfaceState
                 if chatPresentationInterfaceState.interfaceState.editMessage != nil, channel.hasPermission(.editAllMessages) {
                     displayInputTextPanel = true
                 } else if !channel.hasPermission(.sendSomething) || !isMember {
+                    // MARK: Swiftgram
+                    if isMember && forceHideChannelButton {
+                        return (nil, nil)
+                    }
                     if let currentPanel = (currentPanel as? ChatChannelSubscriberInputPanelNode) ?? (currentSecondaryPanel as? ChatChannelSubscriberInputPanelNode) {
                         return (currentPanel, nil)
                     } else {
