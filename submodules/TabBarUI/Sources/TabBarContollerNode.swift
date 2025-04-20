@@ -105,10 +105,10 @@ final class TabBarControllerNode: ASDisplayNode {
         let bottomInset: CGFloat = layout.insets(options: options).bottom
         if !layout.safeInsets.left.isZero {
             tabBarHeight = 34.0 + bottomInset
-            if !self.showTabNames { tabBarHeight -= 6.0 } // MARK: Swiftgram
+            tabBarHeight = sgTabBarHeightModifier(showTabNames: self.showTabNames, tabBarHeight: tabBarHeight, layout: layout, defaultBarSmaller: true)  // MARK: Swiftgram
         } else {
             tabBarHeight = 49.0 + bottomInset
-            if !self.showTabNames { tabBarHeight -= 12.0 } // MARK: Swiftgram
+            tabBarHeight = sgTabBarHeightModifier(showTabNames: self.showTabNames, tabBarHeight: tabBarHeight, layout: layout, defaultBarSmaller: false)  // MARK: Swiftgram
         }
         
         let tabBarFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - (self.tabBarHidden ? 0.0 : tabBarHeight)), size: CGSize(width: layout.size.width, height: tabBarHeight))
