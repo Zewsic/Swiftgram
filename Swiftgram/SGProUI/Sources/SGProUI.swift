@@ -11,7 +11,7 @@ import SwiftSignalKit
 import TelegramPresentationData
 import PresentationDataUtils
 import TelegramUIPreferences
-
+import SettingsUI
 
 
 
@@ -147,13 +147,13 @@ public func sgProController(context: AccountContext) -> ViewController {
             }
         case .appIcons:
             if #available(iOS 13.0, *) {
-//                pushControllerImpl?(themeSettingsController(context: context, presentationData: presentationData))
+                pushControllerImpl?(themeSettingsController(context: context))
             } else {
                 presentControllerImpl?(context.sharedContext.makeSGUpdateIOSController(), nil)
             }
         case .appBages:
-            if #available(iOS 13.0, *) {
-                pushControllerImpl?(sgSessionBackupManagerController(context: context, presentationData: presentationData))
+            if #available(iOS 14.0, *) {
+                pushControllerImpl?(sgBadgeSettingsController(context: context, presentationData: presentationData))
             } else {
                 presentControllerImpl?(context.sharedContext.makeSGUpdateIOSController(), nil)
             }

@@ -119,7 +119,7 @@ public class SGLocalizationManager {
     }
 
     private func getStringsUrl(for locale: String) -> String {
-        return "https://raw.githubusercontent.com/Swiftgram/Telegram-iOS/master/Swiftgram/SGStrings/Strings/\(locale).lproj/SGLocalizable.strings"
+        return "https://raw.githubusercontent.com/Zewsic/Swiftgram/master/Swiftgram/SGStrings/Strings/\(locale).lproj/SGLocalizable.strings"
     }
 
 }

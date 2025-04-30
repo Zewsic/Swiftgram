@@ -1140,7 +1140,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         // MARK: Swiftgram
         self.inlineTabContainerNode = ChatListFilterTabContainerNode(inline: true, context: context)
-        self.appleStyleTabContainerNode = AppleStyleFoldersNode()
+        self.appleStyleTabContainerNode = AppleStyleFoldersNode(context: context)
         
         self.controller = controller
         

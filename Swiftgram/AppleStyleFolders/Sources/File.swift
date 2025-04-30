@@ -6,6 +6,8 @@ import Postbox
 import TelegramCore
 import TelegramPresentationData
 import SGSimpleSettings
+import AccountContext
+import TextNodeWithEntities
 
 private final class ItemNodeDeleteButtonNode: HighlightableButtonNode {
     private let pressed: () -> Void
@@ -57,6 +59,7 @@ private final class ItemNodeDeleteButtonNode: HighlightableButtonNode {
 }
 
 private final class ItemNode: ASDisplayNode {
+    private let context: AccountContext
     private let pressed: () -> Void
     private let requestedDeletion: () -> Void
     
@@ -64,8 +67,8 @@ private final class ItemNode: ASDisplayNode {
     private let containerNode: ContextControllerSourceNode
     
     private let extractedBackgroundNode: ASImageNode
-    private let titleNode: ImmediateTextNode
-    private let shortTitleNode: ImmediateTextNode
+    private let titleNode: ImmediateTextNodeWithEntities
+    private let shortTitleNode: ImmediateTextNodeWithEntities
     private let badgeContainerNode: ASDisplayNode
     private let badgeTextNode: ImmediateTextNode
     private let badgeBackgroundActiveNode: ASImageNode
@@ -80,8 +83,10 @@ private final class ItemNode: ASDisplayNode {
     private var isReordering: Bool = false
     
     private var theme: PresentationTheme?
+    private var currentTitle: (ChatFolderTitle, ChatFolderTitle)?
     
-    init(pressed: @escaping () -> Void, requestedDeletion: @escaping () -> Void, contextGesture: @escaping (ContextExtractedContentContainingNode, ContextGesture) -> Void) {
+    init(context: AccountContext, pressed: @escaping () -> Void, requestedDeletion: @escaping () -> Void, contextGesture: @escaping (ContextExtractedContentContainingNode, ContextGesture) -> Void) {
+        self.context = context
         self.pressed = pressed
         self.requestedDeletion = requestedDeletion
         
@@ -93,14 +98,16 @@ private final class ItemNode: ASDisplayNode {
         
         let titleInset: CGFloat = 4.0
         
-        self.titleNode = ImmediateTextNode()
+        self.titleNode = ImmediateTextNodeWithEntities()
         self.titleNode.displaysAsynchronously = false
         self.titleNode.insets = UIEdgeInsets(top: titleInset, left: 0.0, bottom: titleInset, right: 0.0)
+        self.titleNode.resetEmojiToFirstFrameAutomatically = true
         
-        self.shortTitleNode = ImmediateTextNode()
+        self.shortTitleNode = ImmediateTextNodeWithEntities()
         self.shortTitleNode.displaysAsynchronously = false
         self.shortTitleNode.alpha = 0.0
         self.shortTitleNode.insets = UIEdgeInsets(top: titleInset, left: 0.0, bottom: titleInset, right: 0.0)
+        self.shortTitleNode.resetEmojiToFirstFrameAutomatically = true
         
         self.badgeContainerNode = ASDisplayNode()
         
@@ -162,13 +169,25 @@ private final class ItemNode: ASDisplayNode {
         self.pressed()
     }
     
-    func updateText(title: String, shortTitle: String, unreadCount: Int, unreadHasUnmuted: Bool, isNoFilter: Bool, isSelected: Bool, isEditing: Bool, isAllChats: Bool, isReordering: Bool, presentationData: PresentationData, transition: ContainedViewLayoutTransition) {
+    func updateText(title: ChatFolderTitle, shortTitle: ChatFolderTitle, unreadCount: Int, unreadHasUnmuted: Bool, isNoFilter: Bool, isSelected: Bool, isEditing: Bool, isAllChats: Bool, isReordering: Bool, presentationData: PresentationData, transition: ContainedViewLayoutTransition) {
+        
+        var themeUpdated = false
         if self.theme !== presentationData.theme {
             self.theme = presentationData.theme
             
             self.badgeBackgroundActiveNode.image = generateStretchableFilledCircleImage(diameter: 18.0, color: presentationData.theme.chatList.unreadBadgeActiveBackgroundColor)
             self.badgeBackgroundInactiveNode.image = generateStretchableFilledCircleImage(diameter: 18.0, color: presentationData.theme.chatList.unreadBadgeInactiveBackgroundColor)
+            
+            themeUpdated = true
         }
+        // MARK: Swiftgram
+        var titleUpdated = false
+        if self.currentTitle?.0 != title || self.currentTitle?.1 != shortTitle {
+            self.currentTitle = (title, shortTitle)
+            
+            titleUpdated = true
+        }
+        //
         
         self.containerNode.isGestureEnabled = !isEditing && !isReordering
         self.buttonNode.isUserInteractionEnabled = !isEditing && !isReordering
@@ -199,9 +218,28 @@ private final class ItemNode: ASDisplayNode {
         }
         
         transition.updateAlpha(node: self.badgeContainerNode, alpha: (isReordering || unreadCount == 0) ? 0.0 : 1.0)
+        // MARK: Swiftgram
+        let titleArguments = TextNodeWithEntities.Arguments(
+            context: self.context,
+            cache: self.context.animationCache,
+            renderer: self.context.animationRenderer,
+            placeholderColor: presentationData.theme.list.mediaPlaceholderColor,
+            attemptSynchronous: false
+        )
         
-        self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: isSelected ? presentationData.theme.contextMenu.badgeForegroundColor : presentationData.theme.list.itemSecondaryTextColor)
-        self.shortTitleNode.attributedText = NSAttributedString(string: shortTitle, font: Font.bold(17.0), textColor: isSelected ? presentationData.theme.contextMenu.badgeForegroundColor : presentationData.theme.list.itemSecondaryTextColor)
+        self.titleNode.arguments = titleArguments
+        self.shortTitleNode.arguments = titleArguments
+        
+        self.titleNode.visibility = title.enableAnimations
+        self.shortTitleNode.visibility = title.enableAnimations
+        
+        if themeUpdated || titleUpdated {
+            self.titleNode.attributedText = title.attributedString(font: Font.bold(17.0), textColor: isSelected ? presentationData.theme.contextMenu.badgeForegroundColor : presentationData.theme.list.itemSecondaryTextColor)
+            self.shortTitleNode.attributedText = shortTitle.attributedString(font: Font.bold(17.0), textColor: isSelected ? presentationData.theme.contextMenu.badgeForegroundColor : presentationData.theme.list.itemSecondaryTextColor)
+            
+        }
+        //
+        
         if unreadCount != 0 {
             self.badgeTextNode.attributedText = NSAttributedString(string: "\(unreadCount)", font: Font.regular(14.0), textColor: presentationData.theme.list.itemCheckColors.foregroundColor)
             self.badgeBackgroundActiveNode.isHidden = !isSelected && !unreadHasUnmuted
@@ -362,6 +400,7 @@ private final class ItemNodePair {
 }
 
 public final class AppleStyleFoldersNode: ASDisplayNode {
+    private let context: AccountContext
     private let scrollNode: ASScrollNode
     private let itemsBackgroundView: UIVisualEffectView
     private let itemsBackgroundTintNode: ASImageNode
@@ -399,7 +438,8 @@ public final class AppleStyleFoldersNode: ASDisplayNode {
         }
     }
     
-    override init() {
+    init(context: AccountContext) {
+        self.context = context
         self.scrollNode = ASScrollNode()
         
         self.itemsBackgroundView = UIVisualEffectView()
@@ -645,7 +685,7 @@ public final class AppleStyleFoldersNode: ASDisplayNode {
             } else {
                 itemNodeTransition = .immediate
                 wasAdded = true
-                itemNodePair = ItemNodePair(regular: ItemNode(pressed: { [weak self] in
+                itemNodePair = ItemNodePair(regular: ItemNode(context: self.context, pressed: { [weak self] in
                     self?.tabSelected?(filter.id, false)
                 }, requestedDeletion: { [weak self] in
                     self?.tabRequestedDeletion?(filter.id)
@@ -662,7 +702,7 @@ public final class AppleStyleFoldersNode: ASDisplayNode {
                     default:
                         strongSelf.contextGesture?(nil, sourceNode, gesture, false)
                     }
-                }), highlighted: ItemNode(pressed: { [weak self] in
+                }), highlighted: ItemNode(context: self.context, pressed: { [weak self] in
                     self?.tabSelected?(filter.id, false)
                 }, requestedDeletion: { [weak self] in
                     self?.tabRequestedDeletion?(filter.id)
@@ -697,8 +737,8 @@ public final class AppleStyleFoldersNode: ASDisplayNode {
             if !wasAdded && (itemNodePair.regular.unreadCount != 0) != (unreadCount != 0) {
                 badgeAnimations[filter.id] = (unreadCount != 0) ? .in : .out
             }
-            itemNodePair.regular.updateText(title: filter.title(strings: presentationData.strings).text, shortTitle: filter.shortTitle(strings: presentationData.strings).text, unreadCount: unreadCount, unreadHasUnmuted: unreadHasUnmuted, isNoFilter: isNoFilter, isSelected: false, isEditing: false, isAllChats: isNoFilter, isReordering: isEditing || isReordering, presentationData: presentationData, transition: itemNodeTransition)
-            itemNodePair.highlighted.updateText(title: filter.title(strings: presentationData.strings).text, shortTitle: filter.shortTitle(strings: presentationData.strings).text, unreadCount: unreadCount, unreadHasUnmuted: unreadHasUnmuted, isNoFilter: isNoFilter, isSelected: true, isEditing: false, isAllChats: isNoFilter, isReordering: isEditing || isReordering, presentationData: presentationData, transition: itemNodeTransition)
+            itemNodePair.regular.updateText(title: filter.title(strings: presentationData.strings), shortTitle: filter.shortTitle(strings: presentationData.strings), unreadCount: unreadCount, unreadHasUnmuted: unreadHasUnmuted, isNoFilter: isNoFilter, isSelected: false, isEditing: false, isAllChats: isNoFilter, isReordering: isEditing || isReordering, presentationData: presentationData, transition: itemNodeTransition)
+            itemNodePair.highlighted.updateText(title: filter.title(strings: presentationData.strings), shortTitle: filter.shortTitle(strings: presentationData.strings), unreadCount: unreadCount, unreadHasUnmuted: unreadHasUnmuted, isNoFilter: isNoFilter, isSelected: true, isEditing: false, isAllChats: isNoFilter, isReordering: isEditing || isReordering, presentationData: presentationData, transition: itemNodeTransition)
         }
         var removeKeys: [ChatListFilterTabEntryId] = []
         for (id, _) in self.itemNodePairs {
