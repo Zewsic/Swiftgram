@@ -1,13 +1,17 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
 
 sgdeps = [
-    "//Swiftgram/SGSimpleSettings:SGSimpleSettings"
+    "//Swiftgram/SGSimpleSettings:SGSimpleSettings",
+]
+
+sgsrc = [
+    "//Swiftgram/SGTabBarHeightModifier:SGTabBarHeightModifier"
 ]
 
 swift_library(
     name = "TabBarUI",
     module_name = "TabBarUI",
-    srcs = glob([
+    srcs = sgsrc + glob([
 		"Sources/**/*.swift",
     ]),
     copts = [
