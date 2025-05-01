@@ -3274,37 +3274,35 @@ extension AppDelegate {
         SGLogger.shared.log("SGIAP", "Got IQTP response: \(iqtpResponse)")
         let _ = try? await updateSGStatusInteractively(accountManager: primaryContext.sharedContext.accountManager, { value in
             var value = value
-            value.status = 2
-            return value
 
-//            let newStatus: Int64
-//            if let description = iqtpResponse.description, let status = Int64(description) {
-//                newStatus = status
-//            } else {
-//                SGLogger.shared.log("SGIAP", "Can't parse IQTP response into status!")
-//                newStatus = value.status // unparseable
-//            }
-//            
-//            let userId = primaryContext.account.peerId.id._internalGetInt64Value()
-//            if value.status != newStatus {
-//                SGLogger.shared.log("SGIAP", "Updating \(userId) status \(value.status) -> \(newStatus)")
-//                if newStatus > 1 {
-//                    let stringUserId = String(userId)
-//                    if SGSimpleSettings.shared.primaryUserId != stringUserId {
-//                        SGLogger.shared.log("SGIAP", "Setting new primary user id: \(userId)")
-//                        SGSimpleSettings.shared.primaryUserId = stringUserId
-//                    }
-//                }
-//                value.status = newStatus
-//            } else {
-//                SGLogger.shared.log("SGIAP", "Status \(value.status) for \(userId) hasn't changed")
-//                if newStatus < 1 {
-//                    DispatchQueue.main.async {
-//                        NotificationCenter.default.post(name: .SGIAPHelperValidationErrorNotification, object: nil, userInfo: ["error": "PayWall.ValidationError.Expired"])
-//                    }
-//                }
-//            }
-//            return value
+            let newStatus: Int64
+            if let description = iqtpResponse.description, let status = Int64(description) {
+                newStatus = status
+            } else {
+                SGLogger.shared.log("SGIAP", "Can't parse IQTP response into status!")
+                newStatus = value.status // unparseable
+            }
+            
+            let userId = primaryContext.account.peerId.id._internalGetInt64Value()
+            if value.status != newStatus {
+                SGLogger.shared.log("SGIAP", "Updating \(userId) status \(value.status) -> \(newStatus)")
+                if newStatus > 1 {
+                    let stringUserId = String(userId)
+                    if SGSimpleSettings.shared.primaryUserId != stringUserId {
+                        SGLogger.shared.log("SGIAP", "Setting new primary user id: \(userId)")
+                        SGSimpleSettings.shared.primaryUserId = stringUserId
+                    }
+                }
+                value.status = newStatus
+            } else {
+                SGLogger.shared.log("SGIAP", "Status \(value.status) for \(userId) hasn't changed")
+                if newStatus < 1 {
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: .SGIAPHelperValidationErrorNotification, object: nil, userInfo: ["error": "PayWall.ValidationError.Expired"])
+                    }
+                }
+            }
+            return value
         }).awaitable()
 
 //        if !currentShouldKeepConnection {
