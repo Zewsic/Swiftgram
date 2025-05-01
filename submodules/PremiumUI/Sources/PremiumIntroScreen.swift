@@ -3099,8 +3099,10 @@ private final class PremiumIntroScreenComponent: CombinedComponent {
             let presentationData = self.screenContext.presentationData
 
             // MARK: Swiftgram
-            let alertController = textAlertController(context: self.context, title: i18n("Common.OpenTelegram", presentationData.strings.baseLanguageCode), text: i18n("Common.UseTelegramForPremium", presentationData.strings.baseLanguageCode), actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
-            self.present(alertController)
+            if let context = self.screenContext.context {
+                let alertController = textAlertController(context: context, title: i18n("Common.OpenTelegram", presentationData.strings.baseLanguageCode), text: i18n("Common.UseTelegramForPremium", presentationData.strings.baseLanguageCode), actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_OK, action: {})])
+                self.present(alertController)
+            }
             
             /*
             if case let .gift(_, _, _, giftCode) = self.source, let giftCode, giftCode.usedDate == nil {
