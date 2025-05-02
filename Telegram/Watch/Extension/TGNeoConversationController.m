@@ -1238,7 +1238,7 @@ const NSInteger TGNeoConversationControllerInitialRenderCount = 4 * 2;
         if (strongSelf == nil)
             return;
         
-        [TGInputController presentPlainInputControllerForInterfaceController:strongSelf completion:^(NSString *text)
+        [TGInputController presentInputControllerWithEmojisForInterfaceController:strongSelf completion:^(NSString *text)
         {
             [strongSelf sendMessageWithText:text];
         }];

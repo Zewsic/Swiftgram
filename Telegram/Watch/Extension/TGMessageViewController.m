@@ -229,7 +229,7 @@ NSString *const TGMessageViewControllerIdentifier = @"TGMessageViewController";
         if (strongSelf == nil)
             return;
         
-        [TGInputController presentPlainInputControllerForInterfaceController:strongSelf completion:^(NSString *text)
+        [TGInputController presentInputControllerWithEmojisForInterfaceController:strongSelf completion:^(NSString *text)
         {
             [strongSelf->_sendMessageDisposable setDisposable:[[TGBridgeSendMessageSignals sendMessageWithPeerId:strongSelf->_context.peerId text:text replyToMid:strongSelf->_context.message.identifier] startWithNext:^(TGBridgeMessage *message)
             {
