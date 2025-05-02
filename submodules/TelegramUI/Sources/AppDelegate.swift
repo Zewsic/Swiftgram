@@ -3456,13 +3456,18 @@ extension AppDelegate {
                         SGLogger.shared.log("SGIAP", "Setting new primary user id: \(userId)")
                         SGSimpleSettings.shared.primaryUserId = stringUserId
                     }
+                } else {
+                    SGLogger.shared.log("SGIAP", "Status expired")
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: .SGIAPHelperValidationErrorNotification, object: nil, userInfo: ["error": "PayWall.ValidationError.Expired"])
+                    }
                 }
                 value.status = newStatus
             } else {
                 SGLogger.shared.log("SGIAP", "Status \(value.status) for \(userId) hasn't changed")
-                if newStatus < 1 {
+                if newStatus < 2 {
                     DispatchQueue.main.async {
-                        NotificationCenter.default.post(name: .SGIAPHelperValidationErrorNotification, object: nil, userInfo: ["error": "PayWall.ValidationError.Expired"])
+                        NotificationCenter.default.post(name: .SGIAPHelperValidationErrorNotification, object: nil, userInfo: ["error": "PayWall.ValidationError.TryAgain"])
                     }
                 }
             }
