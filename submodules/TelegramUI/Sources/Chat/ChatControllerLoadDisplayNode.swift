@@ -717,7 +717,7 @@ extension ChatControllerImpl {
                 
                 // MARK: Swiftgram
                 self.chatLanguagePredictionDisposable = (
-                    chatTranslationState(context: context, peerId: peerId, forcePredict: true)
+                    chatTranslationState(context: context, peerId: peerId, threadId: chatLocation.threadId, forcePredict: true)
                     |> map { translationState -> ChatPresentationTranslationState? in
                         if let translationState, !translationState.fromLang.isEmpty {
                             return ChatPresentationTranslationState(isEnabled: translationState.isEnabled, fromLang: translationState.fromLang, toLang: translationState.toLang ?? baseLanguageCode)
